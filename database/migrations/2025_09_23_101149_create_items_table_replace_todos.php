@@ -17,6 +17,8 @@ return new class extends Migration
         // Create the base items table for polymorphic relationships
         Schema::create('items', function (Blueprint $table) {
             $table->id();
+            // Link each item to its owner user
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
             $table->unsignedBigInteger('itemable_id'); // The ID of the related model
             $table->integer('x')->default(0);

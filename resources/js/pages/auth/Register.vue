@@ -82,9 +82,9 @@ import { LoaderCircle } from 'lucide-vue-next';
                     <InputError :message="errors.password_confirmation" />
                 </div>
 
-                <Button
+                <button
                     type="submit"
-                    class="mt-2 w-full"
+                    class="mt-2 btn btn-primary w-full"
                     tabindex="5"
                     :disabled="processing"
                     data-test="register-user-button"
@@ -94,7 +94,7 @@ import { LoaderCircle } from 'lucide-vue-next';
                         class="h-4 w-4 animate-spin"
                     />
                     Create account
-                </Button>
+                </button>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">

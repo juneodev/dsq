@@ -33,6 +33,7 @@
         "@vueuse/core": "^12.8.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
+        "daisyui": "^5.1.14",
         "draggable-resizable-vue3": "^1.0.94-beta",
         "laravel-vite-plugin": "^2.0.0",
         "lucide-vue-next": "^0.468.0",

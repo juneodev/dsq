@@ -2,7 +2,6 @@
 import AuthenticatedSessionController from '@/actions/App/Http/Controllers/Auth/AuthenticatedSessionController';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,7 +26,7 @@ defineProps<{
 
         <div
             v-if="status"
-            class="mb-4 text-center text-sm font-medium text-green-600"
+            class="mb-4 text-center text-sm font-medium text-success"
         >
             {{ status }}
         </div>
@@ -85,9 +84,9 @@ defineProps<{
                     </Label>
                 </div>
 
-                <Button
+                <button
                     type="submit"
-                    class="mt-4 w-full"
+                    class="btn btn-primary mt-4 w-full"
                     :tabindex="4"
                     :disabled="processing"
                     data-test="login-button"
@@ -97,7 +96,7 @@ defineProps<{
                         class="h-4 w-4 animate-spin"
                     />
                     Log in
-                </Button>
+                </button>
             </div>
 
             <div class="text-center text-sm text-muted-foreground">

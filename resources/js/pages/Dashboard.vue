@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import Checklist from '@/components/items/Checklist.vue';
+import Folder from '@/components/items/Folder.vue';
+import Todo from '@/components/items/Todo.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
-import DraggableResizable from 'draggable-resizable-vue3';
-import { ref, onMounted } from 'vue';
 import axios from 'axios';
-import Todo from '@/components/items/Todo.vue';
-import Checklist from '@/components/items/Checklist.vue';
-import Folder from '@/components/items/Folder.vue';
+import DraggableResizable from 'draggable-resizable-vue3';
+import { onMounted, ref } from 'vue';
+import Fab from '@/components/Fab.vue';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -39,7 +40,7 @@ const showCreateForm = ref(false);
 const newItem = ref({
     type: 'todo',
     title: '',
-    description: ''
+    description: '',
 });
 
 // Edit state for items (not needed with specific components)
@@ -63,7 +64,7 @@ const updateItemPosition = async (item: Item) => {
             x: item.x,
             y: item.y,
             width: item.width,
-            height: item.height
+            height: item.height,
         });
     } catch (error) {
         console.error('Error updating item position:', error);
@@ -81,7 +82,7 @@ const createItem = async () => {
             x: Math.floor(Math.random() * 300),
             y: Math.floor(Math.random() * 200),
             width: 250,
-            height: 150
+            height: 150,
         });
 
         items.value.push(response.data);
@@ -104,7 +105,7 @@ const createQuickTodo = async () => {
             x: Math.floor(Math.random() * 300),
             y: Math.floor(Math.random() * 200),
             width: 250,
-            height: 150
+            height: 150,
         });
 
         items.value.push(response.data);
@@ -123,7 +124,7 @@ const createQuickChecklist = async () => {
             x: Math.floor(Math.random() * 300),
             y: Math.floor(Math.random() * 200),
             width: 280,
-            height: 200
+            height: 200,
         });
 
         items.value.push(response.data);
@@ -142,7 +143,7 @@ const createQuickFolder = async () => {
             x: Math.floor(Math.random() * 300),
             y: Math.floor(Math.random() * 200),
             width: 240,
-            height: 180
+            height: 180,
         });
 
         items.value.push(response.data);
@@ -156,7 +157,7 @@ const deleteItem = async (id: number) => {
 
     try {
         await axios.delete(`/api/items/${id}`);
-        items.value = items.value.filter(item => item.id !== id);
+        items.value = items.value.filter((item) => item.id !== id);
     } catch (error) {
         console.error('Error deleting item:', error);
     }
@@ -168,9 +169,12 @@ const updateItem = async (itemId: number, data: any) => {
     try {
         const response = await axios.put(`/api/items/${itemId}`, data);
 
-        const itemIndex = items.value.findIndex(item => item.id === itemId);
+        const itemIndex = items.value.findIndex((item) => item.id === itemId);
         if (itemIndex !== -1) {
-            items.value[itemIndex] = { ...items.value[itemIndex], ...response.data };
+            items.value[itemIndex] = {
+                ...items.value[itemIndex],
+                ...response.data,
+            };
         }
     } catch (error) {
         console.error('Error updating item:', error);
@@ -195,13 +199,17 @@ onMounted(() => {
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4"
         >
             <!-- Create Item Section -->
-            <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div
+                class="rounded-lg border border-gray-200 bg-white p-4 shadow-md"
+            >
                 <div v-if="!showCreateForm" class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-gray-800">Items Dashboard</h2>
+                        <h2 class="text-lg font-semibold text-gray-800">
+                            Items Dashboard
+                        </h2>
                         <button
                             @click="showCreateForm = true"
-                            class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                            class="rounded-lg bg-gray-600 px-4 py-2  transition-colors hover:bg-gray-700"
                         >
                             + Custom Item
                         </button>
@@ -211,19 +219,19 @@ onMounted(() => {
                     <div class="flex flex-wrap gap-3">
                         <button
                             @click="createQuickTodo"
-                            class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2  transition-colors hover:bg-blue-700"
                         >
                             📝 Quick Todo
                         </button>
                         <button
                             @click="createQuickChecklist"
-                            class="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                            class="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2  transition-colors hover:bg-purple-700"
                         >
                             ✅ Quick Checklist
                         </button>
                         <button
                             @click="createQuickFolder"
-                            class="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                            class="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2  transition-colors hover:bg-green-700"
                         >
                             📁 Quick Folder
                         </button>
@@ -232,19 +240,26 @@ onMounted(() => {
 
                 <div v-else class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-800">Create New Item</h3>
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            Create New Item
+                        </h3>
                         <button
-                            @click="showCreateForm = false; newItem.title = ''; newItem.description = ''; newItem.type = 'todo'"
+                            @click="
+                                showCreateForm = false;
+                                newItem.title = '';
+                                newItem.description = '';
+                                newItem.type = 'todo';
+                            "
                             class="text-gray-500 hover:text-gray-700"
                         >
                             ✕
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <select
                             v-model="newItem.type"
-                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                         >
                             <option value="todo">Todo</option>
                             <option value="checklist">Checklist</option>
@@ -254,14 +269,14 @@ onMounted(() => {
                             v-model="newItem.title"
                             type="text"
                             placeholder="Item title"
-                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             @keyup.enter="createItem"
                         />
                         <input
                             v-model="newItem.description"
                             type="text"
                             placeholder="Description (optional)"
-                            class="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            class="rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
                             @keyup.enter="createItem"
                         />
                     </div>
@@ -270,13 +285,18 @@ onMounted(() => {
                         <button
                             @click="createItem"
                             :disabled="!newItem.title.trim()"
-                            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                            class="rounded-lg bg-green-600 px-4 py-2  transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
                         >
                             Create
                         </button>
                         <button
-                            @click="showCreateForm = false; newItem.title = ''; newItem.description = ''; newItem.type = 'todo'"
-                            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                            @click="
+                                showCreateForm = false;
+                                newItem.title = '';
+                                newItem.description = '';
+                                newItem.type = 'todo';
+                            "
+                            class="rounded-lg bg-gray-500 px-4 py-2  transition-colors hover:bg-gray-600"
                         >
                             Cancel
                         </button>
@@ -284,12 +304,14 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div class="h-full border w-full flex-1 rounded-lg bg-stone-50 p-4 relative">
-                <div v-if="loading" class="text-center p-4">
+            <div
+                class="relative h-full w-full flex-1 rounded-lg border bg-stone-50 p-4"
+            >
+                <div v-if="loading" class="p-4 text-center">
                     Loading items...
                 </div>
 
-                <div v-else-if="items.length === 0" class="text-center p-4">
+                <div v-else-if="items.length === 0" class="p-4 text-center">
                     No items found. Create some items to see them here!
                 </div>
 
@@ -299,7 +321,7 @@ onMounted(() => {
                     v-model:x="item.x"
                     v-model:y="item.y"
                     v-model:w="item.width"
-                    :grid="[20,20]"
+                    :grid="[20, 20]"
                     :show-grid="true"
                     :parent="true"
                     @dragstop="updateItemPosition(item)"
@@ -349,5 +371,6 @@ onMounted(() => {
                 </DraggableResizable>
             </div>
         </div>
+        <Fab />
     </AppLayout>
 </template>

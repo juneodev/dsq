@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Item extends Model
 {
     protected $fillable = [
+        'user_id',
         'itemable_type',
         'itemable_id',
         'x',
@@ -37,5 +39,13 @@ class Item extends Model
     public function getTypeAttribute(): string
     {
         return strtolower(class_basename($this->itemable_type));
+    }
+
+    /**
+     * Owner user of the item.
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 }

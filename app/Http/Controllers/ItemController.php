@@ -7,6 +7,7 @@ use App\Models\Todo;
 use App\Models\Checklist;
 use App\Models\Folder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ItemController extends Controller
 {
@@ -15,7 +16,7 @@ class ItemController extends Controller
      */
     public function index()
     {
-        return Item::with('itemable')->get()->map(function ($item) {
+        return Item::with('itemable')->where('user_id', Auth::id())->get()->map(function ($item) {
             return [
                 'id' => $item->id,
                 'type' => $item->type,
@@ -25,7 +26,7 @@ class ItemController extends Controller
                 'height' => $item->height,
                 'created_at' => $item->created_at,
                 'updated_at' => $item->updated_at,
-                ...$item->itemable->toArray()
+                ...$item->itemable->except('id')
             ];
         });
     }
@@ -55,6 +56,7 @@ class ItemController extends Controller
 
         // Create the item with polymorphic relationship
         $item = Item::create([
+            'user_id' => Auth::id(),
             'itemable_type' => get_class($itemable),
             'itemable_id' => $itemable->id,
             'x' => $validated['x'] ?? 0,
