@@ -2,7 +2,6 @@
 import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
 import InputError from '@/components/InputError.vue';
 import TextLink from '@/components/TextLink.vue';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthBase from '@/layouts/AuthLayout.vue';
@@ -84,7 +83,7 @@ import { LoaderCircle } from 'lucide-vue-next';
 
                 <button
                     type="submit"
-                    class="mt-2 btn btn-primary w-full"
+                    class="btn mt-2 w-full btn-primary"
                     tabindex="5"
                     :disabled="processing"
                     data-test="register-user-button"
@@ -97,7 +96,7 @@ import { LoaderCircle } from 'lucide-vue-next';
                 </button>
             </div>
 
-            <div class="text-center text-sm text-muted-foreground">
+            <div class="text-muted-foreground text-center text-sm">
                 Already have an account?
                 <TextLink
                     :href="login()"

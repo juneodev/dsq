@@ -19,6 +19,8 @@ return new class extends Migration
             $table->id();
             // Link each item to its owner user
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // Each item belongs to a board (required)
+            $table->foreignId('board_id')->constrained('boards')->cascadeOnDelete();
             $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
             $table->unsignedBigInteger('itemable_id'); // The ID of the related model
             $table->integer('x')->default(0);

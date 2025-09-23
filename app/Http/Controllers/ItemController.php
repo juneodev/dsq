@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Resources\ItemResource;
 use App\Models\Item;
 use App\Models\Todo;
 use App\Models\Checklist;
 use App\Models\Folder;
+use App\Models\Board;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -16,19 +18,11 @@ class ItemController extends Controller
      */
     public function index()
     {
-        return Item::with('itemable')->where('user_id', Auth::id())->get()->map(function ($item) {
-            return [
-                'id' => $item->id,
-                'type' => $item->type,
-                'x' => $item->x,
-                'y' => $item->y,
-                'width' => $item->width,
-                'height' => $item->height,
-                'created_at' => $item->created_at,
-                'updated_at' => $item->updated_at,
-                ...$item->itemable->except('id')
-            ];
-        });
+        $items = Item::with('itemable')
+            ->where('user_id', Auth::id())
+            ->get();
+
+        return ItemResource::collection($items);
     }
 
     /**
@@ -38,12 +32,15 @@ class ItemController extends Controller
     {
         $validated = $request->validate([
             'type' => 'required|string|in:todo,checklist,folder',
+            'board_id' => 'sometimes|integer|exists:boards,id',
+            'board_uuid' => 'sometimes|string|exists:boards,uuid',
             'x' => 'integer|min:0',
             'y' => 'integer|min:0',
             'width' => 'integer|min:50',
             'height' => 'integer|min:30',
             // Type-specific fields
-            'title' => 'required_if:type,todo,checklist|string|max:255',
+            // Title is required for checklist, optional for todo (defaults will be applied server-side)
+            'title' => 'required_if:type,checklist|string|max:255',
             'name' => 'required_if:type,folder|string|max:255',
             'description' => 'nullable|string',
             'completed' => 'boolean',
@@ -51,12 +48,41 @@ class ItemController extends Controller
             'color' => 'string' // For folders
         ]);
 
+        // Apply server-side defaults for quick-create flows
+        if (($validated['type'] ?? null) === 'todo') {
+            $validated['title'] = $validated['title'] ?? 'New Todo';
+            $validated['description'] = $validated['description'] ?? 'Click to edit description';
+            $validated['completed'] = $validated['completed'] ?? false;
+            $validated['x'] = $validated['x'] ?? 0;
+            $validated['y'] = $validated['y'] ?? 0;
+            $validated['width'] = $validated['width'] ?? 350;
+            $validated['height'] = $validated['height'] ?? 200;
+        }
+
         // Create the specific model first
         $itemable = $this->createItemableModel($validated['type'], $validated);
+
+        // Resolve target board: prefer provided board_uuid, then board_id, otherwise use user's first board or create a default one
+        if (!empty($validated['board_uuid'] ?? null)) {
+            $boardId = Board::where('uuid', $validated['board_uuid'])
+                ->where('owner_id', Auth::id())
+                ->value('id');
+        } else {
+            $boardId = $validated['board_id'] ?? Board::where('owner_id', Auth::id())->value('id');
+        }
+        if (!$boardId) {
+            $defaultBoard = Board::create([
+                'owner_id' => Auth::id(),
+                'title' => 'My Board',
+                'description' => null,
+            ]);
+            $boardId = $defaultBoard->id;
+        }
 
         // Create the item with polymorphic relationship
         $item = Item::create([
             'user_id' => Auth::id(),
+            'board_id' => $boardId,
             'itemable_type' => get_class($itemable),
             'itemable_id' => $itemable->id,
             'x' => $validated['x'] ?? 0,
@@ -65,7 +91,7 @@ class ItemController extends Controller
             'height' => $validated['height'] ?? 100
         ]);
 
-        return $item->load('itemable');
+        return new ItemResource($item->load('itemable'));
     }
 
     /**
@@ -73,7 +99,7 @@ class ItemController extends Controller
      */
     public function show(Item $item)
     {
-        return $item->load('itemable');
+        return new ItemResource($item->load('itemable'));
     }
 
     /**
@@ -104,7 +130,7 @@ class ItemController extends Controller
             $item->itemable->update($itemableData);
         }
 
-        return $item->load('itemable');
+        return new ItemResource($item->load('itemable'));
     }
 
     /**

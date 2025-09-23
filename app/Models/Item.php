@@ -10,6 +10,7 @@ class Item extends Model
 {
     protected $fillable = [
         'user_id',
+        'board_id',
         'itemable_type',
         'itemable_id',
         'x',
@@ -47,5 +48,13 @@ class Item extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Board that owns the item.
+     */
+    public function board(): BelongsTo
+    {
+        return $this->belongsTo(Board::class);
     }
 }
