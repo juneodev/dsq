@@ -13,7 +13,6 @@ import {
     NavigationMenu,
     NavigationMenuItem,
     NavigationMenuList,
-    navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu';
 import {
     Sheet,
@@ -34,7 +33,7 @@ import { toUrl, urlIsActive } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { InertiaLinkProps, Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-vue-next';
+import { LayoutGrid, Menu, Search } from 'lucide-vue-next';
 import { computed } from 'vue';
 
 interface Props {
@@ -60,6 +59,8 @@ const activeItemStyles = computed(
             : '',
 );
 
+const rightNavItems: NavItem[] = [];
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -71,7 +72,7 @@ const mainNavItems: NavItem[] = [
 
 <template>
     <div>
-        <div class="border-b border-base-content/50">
+        <div class="border-b border-base-content/30">
             <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
@@ -87,8 +88,8 @@ const mainNavItems: NavItem[] = [
                         </SheetTrigger>
                         <SheetContent side="left" class="w-[300px] p-6">
                             <SheetTitle class="sr-only"
-                                >Navigation Menu</SheetTitle
-                            >
+                                >Navigation Menu
+                            </SheetTitle>
                             <SheetHeader class="flex justify-start text-left">
                                 <AppLogoIcon
                                     class="size-6 fill-current text-black dark:text-white"
@@ -152,9 +153,7 @@ const mainNavItems: NavItem[] = [
                             >
                                 <Link
                                     :class="[
-                                        navigationMenuTriggerStyle(),
-                                        activeItemStyles(item.href),
-                                        'h-9 cursor-pointer px-3',
+                                        'btn h-9 cursor-pointer px-3 btn-ghost',
                                     ]"
                                     :href="item.href"
                                 >
@@ -167,7 +166,7 @@ const mainNavItems: NavItem[] = [
                                 </Link>
                                 <div
                                     v-if="isCurrentRoute(item.href)"
-                                    class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-black dark:bg-white"
+                                    class="absolute bottom-0 left-0 h-0.5 w-full translate-y-px bg-primary"
                                 ></div>
                             </NavigationMenuItem>
                         </NavigationMenuList>
@@ -257,7 +256,7 @@ const mainNavItems: NavItem[] = [
 
         <div
             v-if="props.breadcrumbs.length > 1"
-            class="flex w-full border-b border-sidebar-border/70"
+            class="border-sidebar-border/70 flex w-full border-b"
         >
             <div
                 class="mx-auto flex h-12 w-full items-center justify-start px-4 text-neutral-500 md:max-w-7xl"

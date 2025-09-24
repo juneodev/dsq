@@ -30,9 +30,9 @@ const passwordInput = ref<InstanceType<typeof Input> | null>(null);
             description="Delete your account and all of its resources"
         />
         <div
-            class="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10"
+            class="space-y-4 rounded-lg border border-red-200/80 bg-error/20 p-4"
         >
-            <div class="relative space-y-0.5 text-red-600 dark:text-red-100">
+            <div class="relative space-y-0.5 text-error-content">
                 <p class="font-medium">Warning</p>
                 <p class="text-sm">
                     Please proceed with caution, this cannot be undone.
@@ -40,7 +40,7 @@ const passwordInput = ref<InstanceType<typeof Input> | null>(null);
             </div>
             <Dialog>
                 <DialogTrigger as-child>
-                    <Button variant="destructive" data-test="delete-user-button"
+                    <Button color="error" data-test="delete-user-button"
                         >Delete account</Button
                     >
                 </DialogTrigger>
@@ -57,9 +57,8 @@ const passwordInput = ref<InstanceType<typeof Input> | null>(null);
                     >
                         <DialogHeader class="space-y-3">
                             <DialogTitle
-                                >Are you sure you want to delete your
-                                account?</DialogTitle
-                            >
+                                >Are you sure you want to delete your account?
+                            </DialogTitle>
                             <DialogDescription>
                                 Once your account is deleted, all of its
                                 resources and data will also be permanently

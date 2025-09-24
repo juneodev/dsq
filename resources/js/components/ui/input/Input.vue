@@ -1,33 +1,55 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
-import { cn } from '@/lib/utils'
-import { useVModel } from '@vueuse/core'
 
-const props = defineProps<{
-  defaultValue?: string | number
+interface Props {
   modelValue?: string | number
+  type?: string
+  placeholder?: string
+  // DaisyUI color states
+  color?:
+    | 'primary'
+    | 'secondary'
+    | 'accent'
+    | 'neutral'
+    | 'info'
+    | 'success'
+    | 'warning'
+    | 'error'
+  // DaisyUI input variants
+  variant?: 'default' | 'bordered'
+  // Size
+  size?: 'xs' | 'sm' | 'md' | 'lg'
+  // Extra classes
   class?: HTMLAttributes['class']
-}>()
+}
 
-const emits = defineEmits<{
-  (e: 'update:modelValue', payload: string | number): void
-}>()
-
-const modelValue = useVModel(props, 'modelValue', emits, {
-  passive: true,
-  defaultValue: props.defaultValue,
+const props = withDefaults(defineProps<Props>(), {
+  type: 'text',
+  variant: 'default',
 })
+
+const emit = defineEmits<{ (e: 'update:modelValue', value: string | number): void }>()
+
+const onInput = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  emit('update:modelValue', target.value)
+}
 </script>
 
 <template>
   <input
-    v-model="modelValue"
+    :value="modelValue as any"
+    @input="onInput"
+    :type="props.type"
+    :placeholder="props.placeholder"
     data-slot="input"
-    :class="cn(
-      'file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-9 w-full min-w-0 rounded-md border bg-transparent px-3 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-sm',
-      'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]',
-      'aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive',
+    :class="[
+      'input',
+      props.variant === 'bordered' ? 'input-bordered' : undefined,
+      props.color ? `input-${props.color}` : undefined,
+      props.size ? `input-${props.size}` : undefined,
       props.class,
-    )"
-  >
+    ]"
+    v-bind="$attrs"
+  />
 </template>

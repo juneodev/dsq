@@ -53,7 +53,7 @@ const cancelEdit = () => {
 
 <template>
     <div
-        class="flex h-full flex-col rounded-box bg-base-100 p-4 shadow-md"
+        class="flex h-full flex-col rounded-box bg-base-100 p-4 shadow-md cursor-pointer"
         @dblclick="startEdit"
     >
         <!-- Header -->
