@@ -125,7 +125,11 @@ class ItemController extends Controller
         $item->update(collect($validated)->only(['x', 'y', 'width', 'height'])->toArray());
 
         // Update type-specific data in itemable model
-        $itemableData = collect($validated)->except(['x', 'y', 'width', 'height'])->filter()->toArray();
+        // Important: keep boolean false values; filter out only nulls
+        $itemableData = collect($validated)
+            ->except(['x', 'y', 'width', 'height'])
+            ->filter(fn ($v) => $v !== null)
+            ->toArray();
         if (!empty($itemableData)) {
             $item->itemable->update($itemableData);
         }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Check, Trash, RotateCcw } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
 
 interface TodoProps {
@@ -103,24 +104,18 @@ const cancelEdit = () => {
                 <div class="flex gap-1">
                     <button
                         @click="$emit('update', { completed: !completed })"
-                        :class="[
-                            'rounded p-1 transition-colors',
-                            completed
-                                ? 'text-yellow-600 hover:bg-yellow-100 hover:text-yellow-800'
-                                : 'text-green-600 hover:bg-green-100 hover:text-green-800',
-                        ]"
-                        :title="
-                            completed ? 'Mark as pending' : 'Mark as completed'
-                        "
+                        class="btn btn-square btn-soft btn-sm"
+                        :class="completed ? 'btn-warning' : 'btn-success'"
+                        :title="completed ? 'Mark as todo' : 'Mark as completed'"
                     >
-                        {{ completed ? '↩️' : '✅' }}
+                        <component :is="completed ? RotateCcw : Check" class="size-5 text-sm" />
                     </button>
                     <button
                         @click="$emit('delete', id)"
-                        class="rounded p-1 text-red-500 transition-colors hover:bg-red-100 hover:text-red-700"
+                        class="btn btn-square btn-soft btn-sm btn-error"
                         title="Delete todo"
                     >
-                        🗑️
+                        <Trash class="size-5" />
                     </button>
                 </div>
             </template>
