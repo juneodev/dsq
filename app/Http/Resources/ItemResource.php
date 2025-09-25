@@ -53,6 +53,32 @@ class ItemResource extends JsonResource
                         'color' => $itemable->color,
                     ];
                     break;
+                case 'note':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'content' => $itemable->content,
+                        'color' => $itemable->color,
+                        'pinned' => (bool) ($itemable->pinned ?? false),
+                    ];
+                    break;
+                case 'bookmark':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'url' => $itemable->url,
+                        'favicon_url' => $itemable->favicon_url,
+                        'tags' => $itemable->tags ?? [],
+                    ];
+                    break;
+                case 'event':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'start_at' => $itemable->start_at,
+                        'end_at' => $itemable->end_at,
+                        'location' => $itemable->location,
+                        'all_day' => (bool) ($itemable->all_day ?? false),
+                        'remind_minutes_before' => $itemable->remind_minutes_before,
+                    ];
+                    break;
                 default:
                     // Unknown type: expose nothing extra
                     $specific = [];

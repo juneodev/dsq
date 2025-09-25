@@ -42,13 +42,45 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Create notes table
+        Schema::create('notes', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->text('content')->nullable();
+            $table->string('color')->default('#FEF3C7');
+            $table->boolean('pinned')->default(false);
+            $table->timestamps();
+        });
+
+        // Create bookmarks table
+        Schema::create('bookmarks', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->string('url');
+            $table->string('favicon_url')->nullable();
+            $table->json('tags')->nullable();
+            $table->timestamps();
+        });
+
+        // Create events table
+        Schema::create('events', function (Blueprint $table) {
+            $table->id();
+            $table->string('title');
+            $table->dateTime('start_at');
+            $table->dateTime('end_at')->nullable();
+            $table->string('location')->nullable();
+            $table->boolean('all_day')->default(false);
+            $table->integer('remind_minutes_before')->nullable();
+            $table->timestamps();
+        });
+
         // Create the base items table for polymorphic relationships
         Schema::create('items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('board_id')->constrained('boards')->cascadeOnDelete();
             $table->foreignId('folder_id')->nullable()->constrained('folders')->cascadeOnDelete();
-            $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
+            $table->string('itemable_type'); // The model type (Todo, Checklist, Folder, Note, Bookmark, Event)
             $table->unsignedBigInteger('itemable_id'); // The ID of the related model
             $table->integer('x')->default(0);
             $table->integer('y')->default(0);
@@ -67,6 +99,9 @@ return new class extends Migration
     {
         // Drop all the new tables (drop items first due to FK to folders)
         Schema::dropIfExists('items');
+        Schema::dropIfExists('events');
+        Schema::dropIfExists('bookmarks');
+        Schema::dropIfExists('notes');
         Schema::dropIfExists('folders');
         Schema::dropIfExists('checklists');
         Schema::dropIfExists('todos');

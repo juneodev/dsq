@@ -15,6 +15,15 @@
     <button class="btn btn-lg btn-circle" @click="$emit('action-c')">
       <slot name="action-c">C</slot>
     </button>
+    <button class="btn btn-lg btn-circle" @click="$emit('action-d')">
+      <slot name="action-d">D</slot>
+    </button>
+    <button class="btn btn-lg btn-circle" @click="$emit('action-e')">
+      <slot name="action-e">E</slot>
+    </button>
+    <button class="btn btn-lg btn-circle" @click="$emit('action-f')">
+      <slot name="action-f">F</slot>
+    </button>
   </div>
 </template>
 
@@ -26,5 +35,8 @@ defineEmits<{
   (e: 'action-a'): void
   (e: 'action-b'): void
   (e: 'action-c'): void
+  (e: 'action-d'): void
+  (e: 'action-e'): void
+  (e: 'action-f'): void
 }>()
 </script>

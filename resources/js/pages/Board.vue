@@ -3,6 +3,9 @@ import Fab from '@/components/Fab.vue';
 import Checklist from '@/components/items/Checklist.vue';
 import Folder from '@/components/items/Folder.vue';
 import Todo from '@/components/items/Todo.vue';
+import Note from '@/components/items/Note.vue';
+import Bookmark from '@/components/items/Bookmark.vue';
+import EventCard from '@/components/items/EventCard.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
@@ -10,6 +13,7 @@ import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import DraggableResizable from 'draggable-resizable-vue3';
 import { onMounted, onBeforeUnmount, ref } from 'vue';
+import { Plus, ListTodo, CheckSquare, Folder as FolderIcon, StickyNote, Link as LinkIcon, Calendar } from 'lucide-vue-next';
 
 const props = defineProps<{ uuid: string; breadcrumbs?: BreadcrumbItem[] }>();
 
@@ -198,10 +202,13 @@ const updateItemPosition = async (item: Item) => {
 // One-click item creation functions with default configurations
 const createQuickTodo = async () => {
     try {
+        const params = new URLSearchParams(window.location.search);
+        const folderUuid = params.get('f');
         // Request server-side creation with defaults
         const response = await axios.post('/api/items', {
             type: 'todo',
             board_uuid: props.uuid,
+            folder_uuid: folderUuid || undefined,
         });
 
         items.value.push(response.data);
@@ -212,6 +219,8 @@ const createQuickTodo = async () => {
 
 const createQuickChecklist = async () => {
     try {
+        const params = new URLSearchParams(window.location.search);
+        const folderUuid = params.get('f');
         const response = await axios.post('/api/items', {
             type: 'checklist',
             title: 'New Checklist',
@@ -222,6 +231,7 @@ const createQuickChecklist = async () => {
             width: 280,
             height: 200,
             board_uuid: props.uuid,
+            folder_uuid: folderUuid || undefined,
         });
 
         items.value.push(response.data);
@@ -247,6 +257,77 @@ const createQuickFolder = async () => {
         items.value.push(response.data);
     } catch (error) {
         console.error('Error creating folder:', error);
+    }
+};
+
+const createQuickNote = async () => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const folderUuid = params.get('f');
+        const response = await axios.post('/api/items', {
+            type: 'note',
+            title: 'New Note',
+            content: '',
+            color: '#FEF3C7',
+            pinned: false,
+            x: Math.floor(Math.random() * 300),
+            y: Math.floor(Math.random() * 200),
+            width: 320,
+            height: 200,
+            board_uuid: props.uuid,
+            folder_uuid: folderUuid || undefined,
+        });
+        items.value.push(response.data);
+    } catch (error) {
+        console.error('Error creating note:', error);
+    }
+};
+
+const createQuickBookmark = async () => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const folderUuid = params.get('f');
+        const response = await axios.post('/api/items', {
+            type: 'bookmark',
+            title: 'New Link',
+            url: 'https://example.com',
+            favicon_url: null,
+            tags: [],
+            x: Math.floor(Math.random() * 300),
+            y: Math.floor(Math.random() * 200),
+            width: 260,
+            height: 120,
+            board_uuid: props.uuid,
+            folder_uuid: folderUuid || undefined,
+        });
+        items.value.push(response.data);
+    } catch (error) {
+        console.error('Error creating bookmark:', error);
+    }
+};
+
+const createQuickEvent = async () => {
+    try {
+        const params = new URLSearchParams(window.location.search);
+        const folderUuid = params.get('f');
+        const response = await axios.post('/api/items', {
+            type: 'event',
+            title: 'New Event',
+            start_at: new Date().toISOString(),
+            end_at: null,
+            location: null,
+            all_day: false,
+            remind_minutes_before: null,
+            x: Math.floor(Math.random() * 300),
+            y: Math.floor(Math.random() * 200),
+            width: 280,
+            height: 140,
+            board_uuid: props.uuid,
+            folder_uuid: folderUuid || undefined,
+        });
+        items.value.push(response.data);
+    } catch (error) {
+        console.error('Error creating event:', error);
     }
 };
 
@@ -387,6 +468,50 @@ onBeforeUnmount(() => {
                                 />
                             </div>
                         </template>
+                        <Note
+                            v-else-if="item.type === 'note'"
+                            :id="item.id"
+                            :title="item.title"
+                            :content="item.content"
+                            :color="item.color"
+                            :pinned="item.pinned"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
+                        <Bookmark
+                            v-else-if="item.type === 'bookmark'"
+                            :id="item.id"
+                            :title="item.title"
+                            :url="item.url"
+                            :favicon_url="item.favicon_url"
+                            :tags="item.tags || []"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
+                        <EventCard
+                            v-else-if="item.type === 'event'"
+                            :id="item.id"
+                            :title="item.title"
+                            :start_at="item.start_at"
+                            :end_at="item.end_at"
+                            :location="item.location"
+                            :all_day="item.all_day"
+                            :remind_minutes_before="item.remind_minutes_before"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
                     </DraggableResizable>
                 </div>
             </div>
@@ -395,11 +520,31 @@ onBeforeUnmount(() => {
             @action-a="createQuickTodo"
             @action-b="createQuickChecklist"
             @action-c="createQuickFolder"
+            @action-d="createQuickNote"
+            @action-e="createQuickBookmark"
+            @action-f="createQuickEvent"
         >
-            <template #main>+</template>
-            <template #action-a>📝</template>
-            <template #action-b>✅</template>
-            <template #action-c>📁</template>
+            <template #main>
+                <Plus class="size-6" />
+            </template>
+            <template #action-a>
+                <ListTodo class="size-6" />
+            </template>
+            <template #action-b>
+                <CheckSquare class="size-6" />
+            </template>
+            <template #action-c>
+                <FolderIcon class="size-6" />
+            </template>
+            <template #action-d>
+                <StickyNote class="size-6" />
+            </template>
+            <template #action-e>
+                <LinkIcon class="size-6" />
+            </template>
+            <template #action-f>
+                <Calendar class="size-6" />
+            </template>
         </Fab>
     </AppLayout>
 </template>
