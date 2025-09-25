@@ -119,16 +119,40 @@ class ItemController extends Controller
             'description' => 'nullable|string',
             'completed' => 'boolean',
             'items' => 'array',
-            'color' => 'string'
+            'color' => 'string',
+            // Moving into/out of a folder
+            'folder_uuid' => ['nullable', 'uuid']
         ]);
 
         // Update positioning data in Item
         $item->update(collect($validated)->only(['x', 'y', 'width', 'height'])->toArray());
 
+        // Handle moving item into/out of a folder if requested
+        if ($request->has('folder_uuid')) {
+            $folderUuid = $validated['folder_uuid'] ?? null;
+            if ($folderUuid === null || $folderUuid === '') {
+                // Move to root
+                $item->folder_id = null;
+            } else {
+                // Prevent assigning a folder to itself
+                $isItemAFolder = strtolower(class_basename($item->itemable_type)) === 'folder';
+                $selfFolderUuid = $isItemAFolder ? optional($item->itemable)->uuid : null;
+
+                if ($isItemAFolder && $selfFolderUuid && $selfFolderUuid === $folderUuid) {
+                    // Ignore self-assignment; keep folder_id unchanged
+                } else {
+                    $folderId = Folder::where('uuid', $folderUuid)->value('id');
+                    // If not found, keep as-is; alternatively, you could return 422
+                    $item->folder_id = $folderId ?? null;
+                }
+            }
+            $item->save();
+        }
+
         // Update type-specific data in itemable model
         // Important: keep boolean false values; filter out only nulls
         $itemableData = collect($validated)
-            ->except(['x', 'y', 'width', 'height'])
+            ->except(['x', 'y', 'width', 'height', 'folder_uuid'])
             ->filter(fn ($v) => $v !== null)
             ->toArray();
         if (!empty($itemableData)) {

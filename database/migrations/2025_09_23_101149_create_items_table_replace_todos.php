@@ -14,23 +14,6 @@ return new class extends Migration
         // Drop the existing todos table
         Schema::dropIfExists('todos');
 
-        // Create the base items table for polymorphic relationships
-        Schema::create('items', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('board_id')->constrained('boards')->cascadeOnDelete();
-            $table->foreignId('folder_id')->nullable()->constrained('boards')->cascadeOnDelete();
-            $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
-            $table->unsignedBigInteger('itemable_id'); // The ID of the related model
-            $table->integer('x')->default(0);
-            $table->integer('y')->default(0);
-            $table->integer('width')->default(200);
-            $table->integer('height')->default(100);
-            $table->timestamps();
-
-            $table->index(['itemable_type', 'itemable_id']);
-        });
-
         // Create todos table for todo-specific data
         Schema::create('todos', function (Blueprint $table) {
             $table->id();
@@ -57,6 +40,23 @@ return new class extends Migration
             $table->string('color')->default('#3b82f6'); // Default blue color
             $table->text('description')->nullable();
             $table->timestamps();
+        });
+
+        // Create the base items table for polymorphic relationships
+        Schema::create('items', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('board_id')->constrained('boards')->cascadeOnDelete();
+            $table->foreignId('folder_id')->nullable()->constrained('folders')->cascadeOnDelete();
+            $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
+            $table->unsignedBigInteger('itemable_id'); // The ID of the related model
+            $table->integer('x')->default(0);
+            $table->integer('y')->default(0);
+            $table->integer('width')->default(200);
+            $table->integer('height')->default(100);
+            $table->timestamps();
+
+            $table->index(['itemable_type', 'itemable_id']);
         });
     }
 

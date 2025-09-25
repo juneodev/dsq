@@ -94,10 +94,48 @@ class BoardController extends Controller
     /**
      * Render the Board page by UUID.
      */
-    public function show(string $uuid)
+    public function show(Request $request, string $uuid)
     {
-        // The Vue page (resources/js/pages/Board.vue) expects a `uuid` prop.
-        return Inertia::render('Board', ['uuid' => $uuid]);
+        // Build breadcrumbs including folder hierarchy if provided via query param `f`.
+        $board = Board::where('uuid', $uuid)->where('owner_id', Auth::id())->firstOrFail();
+
+        $breadcrumbs = [
+            [
+                'title' => 'Dashboard',
+                'href' => route('dashboard'),
+            ],
+            [
+                'title' => $board->title,
+                'href' => route('board', ['uuid' => $board->uuid]),
+            ],
+        ];
+
+        // If we are inside a folder, append its ancestors and itself to the breadcrumb trail
+        $folderUuid = $request->query('f');
+        if (!empty($folderUuid)) {
+            $trail = [];
+            $current = Folder::where('uuid', $folderUuid)->first();
+            // Walk up via the polymorphic item relation to find parent folders
+            while ($current) {
+                $trail[] = [
+                    'title' => $current->name,
+                    'href' => route('board', ['uuid' => $board->uuid, 'f' => $current->uuid]),
+                ];
+                // Move to parent folder (if any)
+                $parentFolderId = optional($current->item)->folder_id;
+                if (!$parentFolderId) {
+                    break;
+                }
+                $current = Folder::find($parentFolderId);
+            }
+            // We built from current up to root; reverse to get root -> current order
+            $breadcrumbs = array_merge($breadcrumbs, array_reverse($trail));
+        }
+
+        return Inertia::render('Board', [
+            'uuid' => $uuid,
+            'breadcrumbs' => $breadcrumbs,
+        ]);
     }
 
     /**

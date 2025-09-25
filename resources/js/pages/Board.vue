@@ -9,11 +9,11 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import DraggableResizable from 'draggable-resizable-vue3';
-import { onMounted, ref } from 'vue';
+import { onMounted, onBeforeUnmount, ref } from 'vue';
 
-const props = defineProps<{ uuid: string }>();
+const props = defineProps<{ uuid: string; breadcrumbs?: BreadcrumbItem[] }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const breadcrumbItems: BreadcrumbItem[] = props.breadcrumbs ?? [
     {
         title: 'Dashboard',
         href: dashboard().url,
@@ -41,6 +41,132 @@ interface Item {
 const items = ref<Item[]>([]);
 const loading = ref(true);
 
+// Board viewport and panning state
+const viewportEl = ref<HTMLElement | null>(null);
+const boardContainer = ref<HTMLElement | null>(null);
+const BOARD_WIDTH = 4000;
+const BOARD_HEIGHT = 3000;
+const panX = ref(0);
+const panY = ref(0);
+const isPanning = ref(false);
+let startClientX = 0;
+let startClientY = 0;
+let startPanX = 0;
+let startPanY = 0;
+
+const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+
+const computePanBounds = () => {
+    const boardEl = boardContainer.value;
+    const boardW = boardEl?.offsetWidth ?? BOARD_WIDTH;
+    const boardH = boardEl?.offsetHeight ?? BOARD_HEIGHT;
+
+    // Use the real viewport size from the window to avoid inflated container heights
+    const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
+    const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
+
+    const minX = Math.min(0, vw - boardW);
+    const minY = Math.min(0, vh - boardH);
+    const bounds = { minX, maxX: 0, minY, maxY: 0 } as const;
+    return bounds as { minX: number; maxX: number; minY: number; maxY: number };
+};
+
+const onPanMove = (e: MouseEvent) => {
+    if (!isPanning.value) return;
+    e.preventDefault();
+    const { minX, maxX, minY, maxY } = computePanBounds();
+    const dx = e.clientX - startClientX;
+    const dy = e.clientY - startClientY;
+    const nextX = clamp(startPanX + dx, minX, maxX);
+    const nextY = clamp(startPanY + dy, minY, maxY);
+    panX.value = nextX;
+    panY.value = nextY;
+};
+
+const endPan = () => {
+    if (!isPanning.value) return;
+    isPanning.value = false;
+    window.removeEventListener('mousemove', onPanMove);
+    window.removeEventListener('mouseup', endPan);
+};
+
+// Start panning only when clicking on the empty board background
+const startPan = (e: MouseEvent) => {
+    // Only start if the target is the surface element itself
+    const target = e.target as HTMLElement;
+    if (!target || !target.classList.contains('pan-surface')) {
+        return;
+    }
+    e.preventDefault();
+    isPanning.value = true;
+    startClientX = e.clientX;
+    startClientY = e.clientY;
+    startPanX = panX.value;
+    startPanY = panY.value;
+    window.addEventListener('mousemove', onPanMove);
+    window.addEventListener('mouseup', endPan);
+};
+
+// Drag and drop folder hit-test helpers
+const folderEls = ref(new Map<number, HTMLElement>());
+
+const registerFolderEl = (itemId: number) => (el: HTMLElement | null) => {
+    if (!el) {
+        folderEls.value.delete(itemId);
+    } else {
+        folderEls.value.set(itemId, el);
+    }
+};
+
+const hitTestFolder = (item: Item): string | null => {
+    const container = boardContainer.value;
+    if (!container) {
+        return null;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const centerX = containerRect.left + item.x + (item.width ?? 0) / 2;
+    const centerY = containerRect.top + item.y + (item.height ?? 0) / 2;
+
+    let found: string | null = null;
+    for (const [folderItemId, el] of folderEls.value.entries()) {
+        if (folderItemId === item.id) {
+            continue;
+        }
+
+        const r = el.getBoundingClientRect();
+        const within = centerX >= r.left && centerX <= r.right && centerY >= r.top && centerY <= r.bottom;
+        if (within) {
+            const folder = items.value.find(i => i.id === folderItemId);
+            if (folder && folder.type === 'folder' && folder.uuid) {
+                if (item.type === 'folder' && (item as any).uuid && folder.uuid === (item as any).uuid) {
+                    continue;
+                }
+                found = folder.uuid;
+                break;
+            }
+        }
+    }
+    return found;
+};
+
+const onDragStop = async (item: Item) => {
+    await updateItemPosition(item);
+    const targetUuid = hitTestFolder(item);
+    const params = new URLSearchParams(window.location.search);
+    const currentFolder = params.get('f');
+
+    if (targetUuid) {
+        await updateItem(item.id, { folder_uuid: targetUuid });
+        // Optimistic UI update: remove the item from the current list since it moved into a folder
+        items.value = items.value.filter((i) => i.id !== item.id);
+    } else if (currentFolder) {
+        // Inside a folder view and no folder hit: keep item in the current folder; only position was updated above.
+        // No folder_uuid change here.
+    } else {
+    }
+};
+
 // Edit state for items (not needed with specific components)
 // const editingItems = ref<Set<number>>(new Set());
 // const editForms = ref<Record<number, { type: string; title: string; description: string }>>({});
@@ -50,7 +176,7 @@ const fetchItems = async () => {
         const response = await axios.get(`/api/boards/${props.uuid}/items${window.location.search || ''}`);
         items.value = response.data;
     } catch (error) {
-        console.error('Error fetching items:', error);
+        console.error('[Board] Error fetching items:', error);
     } finally {
         loading.value = false;
     }
@@ -65,7 +191,7 @@ const updateItemPosition = async (item: Item) => {
             height: item.height,
         });
     } catch (error) {
-        console.error('Error updating item position:', error);
+        console.error('[Board] Error updating item position:', error);
     }
 };
 
@@ -149,7 +275,7 @@ const updateItem = async (itemId: number, data: any) => {
             };
         }
     } catch (error) {
-        console.error('Error updating item:', error);
+        console.error('[Board] Error updating item:', error);
     }
 };
 
@@ -158,17 +284,31 @@ const openFolder = (folderUuid: string) => {
     window.location.assign(`/board/${props.uuid}?f=${encodeURIComponent(folderUuid)}`);
 };
 
+let prevBodyOverflow: string | null = null;
+
 onMounted(() => {
+    // Lock body scroll to avoid vertical scrollbar interfering with panning
+    prevBodyOverflow = document.body.style.overflow || '';
+    document.body.style.overflow = 'hidden';
     fetchItems();
+});
+
+onBeforeUnmount(() => {
+    console.log('[Board] onBeforeUnmount');
+    endPan();
+    // Restore body scroll
+    if (prevBodyOverflow !== null) {
+        document.body.style.overflow = prevBodyOverflow;
+    }
 });
 </script>
 
 <template>
     <Head title="Dashboard" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto">
-            <div class="relative h-full w-full flex-1">
+    <AppLayout :breadcrumbs="breadcrumbItems">
+        <div class="flex h-full flex-1 flex-col gap-4 overflow-hidden">
+            <div class="relative h-full w-full flex-1 overflow-hidden" ref="viewportEl">
                 <div v-if="loading" class="p-4 text-center">
                     Loading items...
                 </div>
@@ -177,62 +317,78 @@ onMounted(() => {
                     No items found. Create some items to see them here!
                 </div>
 
-                <DraggableResizable
-                    v-for="item in items"
-                    :key="item.id"
-                    v-model:x="item.x"
-                    v-model:y="item.y"
-                    v-model:w="item.width"
-                    :grid="[20, 20]"
-                    :show-grid="true"
-                    :parent="true"
-                    @dragstop="updateItemPosition(item)"
-                    @resize-stop="updateItemPosition(item)"
-                    class="rounded-box"
+                <div
+                    ref="boardContainer"
+                    class="relative select-none"
+                    :style="{ width: BOARD_WIDTH + 'px', height: BOARD_HEIGHT + 'px', transform: `translate(${panX}px, ${panY}px)` }"
                 >
-                    <!-- Render specific item component based on type -->
-                    <Todo
-                        v-if="item.type === 'todo'"
-                        :id="item.id"
-                        :title="item.title"
-                        :description="item.description"
-                        :completed="item.completed"
-                        :x="item.x"
-                        :y="item.y"
-                        :width="item.width"
-                        :height="item.height"
-                        @update="updateItem(item.id, $event)"
-                        @delete="deleteItem"
-                    />
-                    <Checklist
-                        v-else-if="item.type === 'checklist'"
-                        :id="item.id"
-                        :title="item.title"
-                        :description="item.description"
-                        :items="item.items || []"
-                        :x="item.x"
-                        :y="item.y"
-                        :width="item.width"
-                        :height="item.height"
-                        @update="updateItem(item.id, $event)"
-                        @delete="deleteItem"
-                    />
-                    <Folder
-                        v-else-if="item.type === 'folder'"
-                        :id="item.id"
-                        :uuid="item.uuid"
-                        :name="item.name"
-                        :description="item.description"
-                        :color="item.color"
-                        :x="item.x"
-                        :y="item.y"
-                        :width="item.width"
-                        :height="item.height"
-                        @update="updateItem(item.id, $event)"
-                        @delete="deleteItem"
-                        @open="openFolder"
-                    />
-                </DraggableResizable>
+                    <!-- Transparent surface to initiate panning when clicking empty board space -->
+                    <div
+                        class="pan-surface absolute inset-0 z-0 cursor-grab"
+                        @mousedown="startPan"
+                        :class="{ 'cursor-grabbing': isPanning }"
+                    ></div>
+
+                    <DraggableResizable
+                        v-for="item in items"
+                        :key="item.id"
+                        v-model:x="item.x"
+                        v-model:y="item.y"
+                        v-model:w="item.width"
+                        :grid="[20, 20]"
+                        :show-grid="true"
+                        :parent="true"
+                        @dragstop="onDragStop(item)"
+                        @resize-stop="updateItemPosition(item)"
+                        class="rounded-box z-10"
+                    >
+                        <!-- Render specific item component based on type -->
+                        <Todo
+                            v-if="item.type === 'todo'"
+                            :id="item.id"
+                            :title="item.title"
+                            :description="item.description"
+                            :completed="item.completed"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
+                        <Checklist
+                            v-else-if="item.type === 'checklist'"
+                            :id="item.id"
+                            :title="item.title"
+                            :description="item.description"
+                            :items="item.items || []"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
+                        <template v-else-if="item.type === 'folder'">
+                            <div :ref="registerFolderEl(item.id)">
+                                <Folder
+                                    :id="item.id"
+                                    :uuid="item.uuid"
+                                    :name="item.name"
+                                    :description="item.description"
+                                    :color="item.color"
+                                    :x="item.x"
+                                    :y="item.y"
+                                    :width="item.width"
+                                    :height="item.height"
+                                    @update="updateItem(item.id, $event)"
+                                    @delete="deleteItem"
+                                    @open="openFolder"
+                                />
+                            </div>
+                        </template>
+                    </DraggableResizable>
+                </div>
             </div>
         </div>
         <Fab
