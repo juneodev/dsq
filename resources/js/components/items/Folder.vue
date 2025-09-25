@@ -12,12 +12,12 @@ interface FolderProps {
     height: number;
 }
 
-const props = defineProps<FolderProps>();
+const props = defineProps<FolderProps & { uuid: string }>();
 
-defineEmits<{
+const emit = defineEmits<{
     update: [data: Partial<FolderProps>];
     delete: [id: number];
-    open: [id: number];
+    open: [uuid: string];
 }>();
 
 const folderStyle = computed(() => ({
@@ -37,7 +37,7 @@ const colorOptions = [
 ];
 
 const changeColor = (newColor: string) => {
-    $emit('update', { color: newColor });
+    emit('update', { color: newColor });
 };
 </script>
 
@@ -65,7 +65,7 @@ const changeColor = (newColor: string) => {
             </div>
             <div class="flex gap-1">
                 <button
-                    @click="$emit('open', id)"
+                    @click="$emit('open', uuid)"
                     class="text-blue-600 hover:text-blue-800 hover:bg-blue-100 p-1 rounded transition-colors"
                     title="Open folder"
                 >

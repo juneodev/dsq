@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import Fab from '@/components/Fab.vue';
 import Checklist from '@/components/items/Checklist.vue';
 import Folder from '@/components/items/Folder.vue';
 import Todo from '@/components/items/Todo.vue';
@@ -9,7 +10,6 @@ import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import DraggableResizable from 'draggable-resizable-vue3';
 import { onMounted, ref } from 'vue';
-import Fab from '@/components/Fab.vue';
 
 const props = defineProps<{ uuid: string }>();
 
@@ -25,7 +25,11 @@ interface Item {
     type: string;
     title: string;
     description?: string;
-    completed: boolean;
+    completed?: boolean; // for todos
+    items?: any[]; // for checklists
+    name?: string; // for folders
+    color?: string; // for folders
+    uuid?: string; // for folders
     x: number;
     y: number;
     width: number;
@@ -37,14 +41,13 @@ interface Item {
 const items = ref<Item[]>([]);
 const loading = ref(true);
 
-
 // Edit state for items (not needed with specific components)
 // const editingItems = ref<Set<number>>(new Set());
 // const editForms = ref<Record<number, { type: string; title: string; description: string }>>({});
 
 const fetchItems = async () => {
     try {
-        const response = await axios.get(`/api/boards/${props.uuid}/items`);
+        const response = await axios.get(`/api/boards/${props.uuid}/items${window.location.search || ''}`);
         items.value = response.data;
     } catch (error) {
         console.error('Error fetching items:', error);
@@ -65,7 +68,6 @@ const updateItemPosition = async (item: Item) => {
         console.error('Error updating item position:', error);
     }
 };
-
 
 // One-click item creation functions with default configurations
 const createQuickTodo = async () => {
@@ -151,9 +153,9 @@ const updateItem = async (itemId: number, data: any) => {
     }
 };
 
-const openFolder = (folderId: number) => {
-    console.log('Opening folder:', folderId);
-    // TODO: Implement folder opening logic
+const openFolder = (folderUuid: string) => {
+    // Navigate to the same board with folder query parameter `f`
+    window.location.assign(`/board/${props.uuid}?f=${encodeURIComponent(folderUuid)}`);
 };
 
 onMounted(() => {
@@ -165,13 +167,8 @@ onMounted(() => {
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div
-            class="flex h-full flex-1 flex-col gap-4 overflow-x-auto"
-        >
-
-            <div
-                class="relative h-full w-full flex-1"
-            >
+        <div class="flex h-full flex-1 flex-col gap-4 overflow-x-auto">
+            <div class="relative h-full w-full flex-1">
                 <div v-if="loading" class="p-4 text-center">
                     Loading items...
                 </div>
@@ -223,6 +220,7 @@ onMounted(() => {
                     <Folder
                         v-else-if="item.type === 'folder'"
                         :id="item.id"
+                        :uuid="item.uuid"
                         :name="item.name"
                         :description="item.description"
                         :color="item.color"

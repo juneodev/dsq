@@ -17,10 +17,9 @@ return new class extends Migration
         // Create the base items table for polymorphic relationships
         Schema::create('items', function (Blueprint $table) {
             $table->id();
-            // Link each item to its owner user
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            // Each item belongs to a board (required)
             $table->foreignId('board_id')->constrained('boards')->cascadeOnDelete();
+            $table->foreignId('folder_id')->nullable()->constrained('boards')->cascadeOnDelete();
             $table->string('itemable_type'); // The model type (Todo, Checklist, Folder)
             $table->unsignedBigInteger('itemable_id'); // The ID of the related model
             $table->integer('x')->default(0);
@@ -53,6 +52,7 @@ return new class extends Migration
         // Create folders table for folder-specific data
         Schema::create('folders', function (Blueprint $table) {
             $table->id();
+            $table->uuid()->nullable(false)->unique();
             $table->string('name');
             $table->string('color')->default('#3b82f6'); // Default blue color
             $table->text('description')->nullable();
@@ -65,11 +65,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Drop all the new tables
+        // Drop all the new tables (drop items first due to FK to folders)
+        Schema::dropIfExists('items');
         Schema::dropIfExists('folders');
         Schema::dropIfExists('checklists');
         Schema::dropIfExists('todos');
-        Schema::dropIfExists('items');
 
         // Recreate the old todos table structure
         Schema::create('todos', function (Blueprint $table) {

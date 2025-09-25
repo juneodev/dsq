@@ -11,6 +11,7 @@ class Item extends Model
     protected $fillable = [
         'user_id',
         'board_id',
+        'folder_id',
         'itemable_type',
         'itemable_id',
         'x',

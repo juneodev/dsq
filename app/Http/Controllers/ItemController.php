@@ -10,6 +10,7 @@ use App\Models\Folder;
 use App\Models\Board;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ItemController extends Controller
 {
@@ -167,6 +168,7 @@ class ItemController extends Controller
                 ]);
             case 'folder':
                 return Folder::create([
+                    'uuid' => (string) Str::uuid(),
                     'name' => $data['name'],
                     'description' => $data['description'] ?? null,
                     'color' => $data['color'] ?? '#3b82f6'

@@ -47,6 +47,7 @@ class ItemResource extends JsonResource
                     break;
                 case 'folder':
                     $specific = [
+                        'uuid' => $itemable->uuid,
                         'name' => $itemable->name,
                         'description' => $itemable->description,
                         'color' => $itemable->color,

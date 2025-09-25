@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Trash } from 'lucide-vue-next';
 
 interface ChecklistItem {
     text: string;
@@ -19,7 +20,7 @@ interface ChecklistProps {
 
 const props = defineProps<ChecklistProps>();
 
-defineEmits<{
+const emit = defineEmits<{
     update: [data: Partial<ChecklistProps>];
     delete: [id: number];
 }>();
@@ -38,19 +39,19 @@ const addItem = () => {
     if (!newItemText.value.trim()) return;
 
     const updatedItems = [...props.items, { text: newItemText.value, completed: false }];
-    $emit('update', { items: updatedItems });
+    emit('update', { items: updatedItems });
     newItemText.value = '';
 };
 
 const toggleItem = (index: number) => {
     const updatedItems = [...props.items];
     updatedItems[index].completed = !updatedItems[index].completed;
-    $emit('update', { items: updatedItems });
+    emit('update', { items: updatedItems });
 };
 
 const removeItem = (index: number) => {
     const updatedItems = props.items.filter((_, i) => i !== index);
-    $emit('update', { items: updatedItems });
+    emit('update', { items: updatedItems });
 };
 </script>
 
@@ -65,13 +66,6 @@ const removeItem = (index: number) => {
                     {{ title }}
                 </h3>
             </div>
-            <button
-                @click="$emit('delete', id)"
-                class="text-red-500 hover:text-red-700 hover:bg-red-100 p-1 rounded transition-colors"
-                title="Delete checklist"
-            >
-                🗑️
-            </button>
         </div>
 
         <p v-if="description" class="text-gray-600 mb-2 text-sm">
@@ -145,9 +139,13 @@ const removeItem = (index: number) => {
             <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs font-medium">
                 {{ items.length }} items
             </span>
-            <span class="text-xs text-gray-400">
-                ID: {{ id }}
-            </span>
+            <button
+                @click="$emit('delete', id)"
+                class="btn btn-square btn-soft btn-sm btn-error"
+                title="Delete checklist"
+            >
+                <Trash class="size-5" />
+            </button>
         </div>
     </div>
 </template>

@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Board;
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class BoardController extends Controller
 {
@@ -65,12 +67,37 @@ class BoardController extends Controller
     {
         $board = Board::where('uuid', $uuid)->where('owner_id', Auth::id())->firstOrFail();
 
-        $items = \App\Models\Item::with('itemable')
+        $query = \App\Models\Item::with('itemable')
             ->where('board_id', $board->id)
-            ->where('user_id', Auth::id())
-            ->get();
+            ->where('user_id', Auth::id());
+
+        // Folder scope via query param `f`
+        $folderUuid = $request->query('f');
+        if ($folderUuid === null || $folderUuid === '') {
+            // Root items (not inside any folder)
+            $query->whereNull('folder_id');
+        } else {
+            $folderId = Folder::where('uuid', $folderUuid)->value('id');
+            if ($folderId) {
+                $query->where('folder_id', $folderId);
+            } else {
+                // If folder not found, return empty results
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $items = $query->get();
 
         return \App\Http\Resources\ItemResource::collection($items);
+    }
+
+    /**
+     * Render the Board page by UUID.
+     */
+    public function show(string $uuid)
+    {
+        // The Vue page (resources/js/pages/Board.vue) expects a `uuid` prop.
+        return Inertia::render('Board', ['uuid' => $uuid]);
     }
 
     /**
