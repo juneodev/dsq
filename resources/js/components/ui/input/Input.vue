@@ -44,7 +44,7 @@ const onInput = (e: Event) => {
     :placeholder="props.placeholder"
     data-slot="input"
     :class="[
-      'input',
+      'input w-full max-w-full',
       props.variant === 'bordered' ? 'input-bordered' : undefined,
       props.color ? `input-${props.color}` : undefined,
       props.size ? `input-${props.size}` : undefined,
