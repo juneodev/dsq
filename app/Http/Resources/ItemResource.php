@@ -54,10 +54,34 @@ class ItemResource extends JsonResource
                     ];
                     break;
                 case 'document':
+                    // Generate a signed URL for S3, or a public/local URL otherwise
+                    $media = method_exists($itemable, 'getFirstMedia') ? $itemable->getFirstMedia('documents') : null;
+                    $url = null;
+                    if ($media) {
+                        try {
+                            $disk = config('media-library.disk_name');
+                            $driver = config("filesystems.disks.$disk.driver");
+                            if ($driver === 's3' && method_exists($media, 'getTemporaryUrl')) {
+                                // Signed URL valid for 10 minutes
+                                $url = $media->getTemporaryUrl(now()->addMinutes(10));
+                            } else {
+                                // Local/public disks
+                                $url = $media->getUrl();
+                            }
+                        } catch (\Throwable $e) {
+                            // Fallback to non-signed URL if something goes wrong
+                            try {
+                                $url = $media->getUrl();
+                            } catch (\Throwable $e2) {
+                                $url = null;
+                            }
+                        }
+                    }
+
                     $specific = [
                         'title' => $itemable->title,
                         'description' => $itemable->description,
-                        'url' => $itemable->url,
+                        'url' => $url,
                     ];
                     break;
                 case 'note':

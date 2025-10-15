@@ -605,6 +605,19 @@ onBeforeUnmount(() => {
                             @update="updateItem(item.id, $event)"
                             @delete="deleteItem"
                         />
+                        <DocumentItem
+                            v-else-if="item.type === 'document'"
+                            :id="item.id"
+                            :title="item.title"
+                            :description="item.description"
+                            :url="item.url"
+                            :x="item.x"
+                            :y="item.y"
+                            :width="item.width"
+                            :height="item.height"
+                            @update="updateItem(item.id, $event)"
+                            @delete="deleteItem"
+                        />
                     </DraggableResizable>
                 </div>
             </div>

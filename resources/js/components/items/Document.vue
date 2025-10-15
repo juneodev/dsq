@@ -56,10 +56,7 @@ const cancelEdit = () => {
     <!-- Header -->
     <div class="mb-2 justify-between">
       <div class="flex items-center gap-2">
-        <span class="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800">
-          DOCUMENT
-        </span>
-        <h3 v-if="!editing" class="text-lg font-semibold text-gray-800">
+        <h3 v-if="!editing" class="text-lg truncate font-semibold text-gray-800">
           {{ title }}
         </h3>
         <input

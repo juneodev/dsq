@@ -119,9 +119,6 @@ class BoardController extends Controller
             ->addMediaFromRequest('file')
             ->toMediaCollection('documents');
 
-        // Persist a direct accessible URL for current frontend compatibility
-        $document->url = $media->getUrl();
-        $document->save();
 
         // Create Item linked to this document
         $item = Item::create([
