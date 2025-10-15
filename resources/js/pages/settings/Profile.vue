@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/AppLayout.vue';
 import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { type BreadcrumbItem } from '@/types';
+import { ref } from 'vue';
 
 interface Props {
     mustVerifyEmail: boolean;
@@ -30,6 +31,46 @@ const breadcrumbItems: BreadcrumbItem[] = [
 
 const page = usePage();
 const user = page.props.auth.user;
+
+const uploadingAvatar = ref(false);
+const uploadError = ref<string | null>(null);
+
+async function handleAvatarChange(e: Event) {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const formData = new FormData();
+    formData.append('avatar', file);
+    uploadingAvatar.value = true;
+    uploadError.value = null;
+
+    try {
+        const response = await fetch('/settings/profile/avatar', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': (document.head.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '',
+            },
+            body: formData,
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message ?? 'Upload failed');
+        }
+        const data = await response.json();
+        // Update the current user's avatar in page props
+        if (page.props.auth && page.props.auth.user) {
+            page.props.auth.user.avatar = data.avatar ?? null;
+        }
+    } catch (err: any) {
+        uploadError.value = err?.message ?? 'An error occurred while uploading the avatar';
+        console.error(err);
+    } finally {
+        uploadingAvatar.value = false;
+        // clear the input value to allow re-uploading the same file if needed
+        (e.target as HTMLInputElement).value = '';
+    }
+}
 </script>
 
 <template>
@@ -75,6 +116,33 @@ const user = page.props.auth.user;
                             placeholder="Email address"
                         />
                         <InputError class="mt-2" :message="errors.email" />
+                    </div>
+
+                    <div class="grid gap-2">
+                        <Label for="avatar">Avatar</Label>
+                        <div class="flex items-center gap-4">
+                            <img
+                                v-if="user?.avatar"
+                                :src="user.avatar"
+                                alt="Current avatar"
+                                class="h-12 w-12 rounded-full object-cover"
+                            />
+                            <input
+                                id="avatar"
+                                type="file"
+                                accept="image/*"
+                                @change="handleAvatarChange"
+                            />
+                        </div>
+                        <p v-if="uploadingAvatar" class="text-sm text-muted-foreground">
+                            Uploading avatar...
+                        </p>
+                        <p v-if="uploadError" class="text-sm text-red-600">
+                            {{ uploadError }}
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            PNG, JPG, or WEBP up to 5MB.
+                        </p>
                     </div>
 
                     <div v-if="mustVerifyEmail && !user.email_verified_at">

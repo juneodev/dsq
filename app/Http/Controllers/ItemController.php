@@ -7,6 +7,7 @@ use App\Models\Item;
 use App\Models\Todo;
 use App\Models\Checklist;
 use App\Models\Folder;
+use App\Models\Document;
 use App\Models\Board;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -31,7 +32,7 @@ class ItemController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:todo,checklist,folder',
+            'type' => 'required|string|in:todo,checklist,folder,document',
             'board_id' => 'sometimes|integer|exists:boards,id',
             'board_uuid' => 'sometimes|string|exists:boards,uuid',
             'x' => 'integer|min:0',
@@ -40,12 +41,13 @@ class ItemController extends Controller
             'height' => 'integer|min:30',
             // Type-specific fields
             // Title is required for checklist, optional for todo (defaults will be applied server-side)
-            'title' => 'required_if:type,checklist|string|max:255',
+            'title' => 'required_if:type,checklist,document|string|max:255',
             'name' => 'required_if:type,folder|string|max:255',
             'description' => 'nullable|string',
             'completed' => 'boolean',
             'items' => 'array', // For checklists
-            'color' => 'string' // For folders
+            'color' => 'string', // For folders
+            'url' => 'nullable|string|max:2048' // For documents
         ]);
 
         // Apply server-side defaults for quick-create flows
@@ -170,6 +172,12 @@ class ItemController extends Controller
                     'name' => $data['name'],
                     'description' => $data['description'] ?? null,
                     'color' => $data['color'] ?? '#3b82f6'
+                ]);
+            case 'document':
+                return Document::create([
+                    'title' => $data['title'],
+                    'description' => $data['description'] ?? null,
+                    'url' => $data['url'] ?? null,
                 ]);
             default:
                 throw new \InvalidArgumentException("Invalid item type: {$type}");

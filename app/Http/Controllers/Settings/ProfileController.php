@@ -8,6 +8,7 @@ use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rules\File;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -59,5 +60,32 @@ class ProfileController extends Controller
         $request->session()->regenerateToken();
 
         return redirect('/');
+    }
+
+    /**
+     * Upload or update the authenticated user's avatar image.
+     */
+    public function uploadAvatar(Request $request)
+    {
+        $validated = $request->validate([
+            'avatar' => [
+                'required',
+                File::image()->max(5 * 1024), // 5MB
+            ],
+        ]);
+
+        $user = $request->user();
+
+        // Replace existing avatar with the new one (singleFile collection ensures replacement)
+        $media = $user
+            ->addMediaFromRequest('avatar')
+            ->usingFileName(sprintf('user-%d-avatar.%s', $user->id, $request->file('avatar')->getClientOriginalExtension()))
+            ->toMediaCollection('avatar');
+
+        return response()->json([
+            'message' => 'Avatar updated successfully.',
+            'avatar' => $user->getFirstMediaUrl('avatar', 'thumb'),
+            'avatar_original' => $media->getUrl(),
+        ]);
     }
 }

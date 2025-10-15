@@ -52,6 +52,13 @@ class ItemResource extends JsonResource
                         'color' => $itemable->color,
                     ];
                     break;
+                case 'document':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'description' => $itemable->description,
+                        'url' => $itemable->url,
+                    ];
+                    break;
                 default:
                     // Unknown type: expose nothing extra
                     $specific = [];

@@ -22,6 +22,7 @@ Route::apiResource('api/items', ItemController::class);
 // API routes for boards (CRUD)
 Route::middleware(['auth'])->group(function () {
     Route::get('api/boards/{uuid}/items', [BoardController::class, 'itemsByUuid']);
+    Route::post('api/boards/{uuid}/upload', [BoardController::class, 'upload']);
     Route::apiResource('api/boards', BoardController::class)->only(['index', 'store', 'update', 'destroy']);
 });
 

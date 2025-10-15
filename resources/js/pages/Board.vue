@@ -2,6 +2,7 @@
 import Checklist from '@/components/items/Checklist.vue';
 import Folder from '@/components/items/Folder.vue';
 import Todo from '@/components/items/Todo.vue';
+import DocumentItem from '@/components/items/Document.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { dashboard } from '@/routes';
 import { type BreadcrumbItem } from '@/types';
@@ -37,6 +38,67 @@ interface Item {
 const items = ref<Item[]>([]);
 const loading = ref(true);
 
+// Upload dropzone state
+const isDragging = ref(false);
+const isUploading = ref(false);
+const uploadProgress = ref(0);
+const uploadError = ref<string | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const onDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    isDragging.value = true;
+};
+
+const onDragLeave = () => {
+    isDragging.value = false;
+};
+
+const onDrop = async (e: DragEvent) => {
+    e.preventDefault();
+    isDragging.value = false;
+    uploadError.value = null;
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+    await startUpload(files[0]);
+};
+
+const onSelectClick = () => {
+    fileInputRef.value?.click();
+};
+
+const onFileSelected = async (e: Event) => {
+    const input = e.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+    uploadError.value = null;
+    await startUpload(input.files[0]);
+    input.value = '';
+};
+
+const startUpload = async (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    isUploading.value = true;
+    uploadProgress.value = 0;
+
+    try {
+        const response = await axios.post(`/api/boards/${props.uuid}/upload`, form, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+                if (!progressEvent.total) return;
+                uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            },
+        });
+        // Server returns the created Item (ItemResource)
+        items.value.push(response.data);
+    } catch (err: any) {
+        console.error('Upload failed', err);
+        uploadError.value = err?.response?.data?.message || 'Upload failed';
+    } finally {
+        isUploading.value = false;
+        uploadProgress.value = 0;
+    }
+};
 
 // Edit state for items (not needed with specific components)
 // const editingItems = ref<Set<number>>(new Set());
@@ -169,6 +231,32 @@ onMounted(() => {
             class="flex h-full flex-1 flex-col gap-4 overflow-x-auto"
         >
 
+            <!-- Dropzone upload area -->
+            <div
+                class="rounded-box border border-dashed border-base-300 bg-base-200/40 p-4 text-center transition-colors"
+                :class="{ 'bg-primary/10 border-primary': isDragging, 'opacity-60': isUploading }"
+                @dragover="onDragOver"
+                @dragleave="onDragLeave"
+                @drop="onDrop"
+            >
+                <div class="flex flex-col items-center gap-2">
+                    <div class="text-sm">
+                        <span v-if="!isUploading">Dépose un fichier ici ou</span>
+                        <span v-else>Téléversement en cours… {{ uploadProgress }}%</span>
+                    </div>
+                    <button class="btn btn-sm" type="button" @click="onSelectClick" :disabled="isUploading">
+                        Choisir un fichier
+                    </button>
+                    <input
+                        ref="fileInputRef"
+                        type="file"
+                        class="hidden"
+                        @change="onFileSelected"
+                    />
+                    <div v-if="uploadError" class="text-error text-sm">{{ uploadError }}</div>
+                </div>
+            </div>
+
             <div
                 class="relative h-full w-full flex-1"
             >
@@ -233,6 +321,19 @@ onMounted(() => {
                         @update="updateItem(item.id, $event)"
                         @delete="deleteItem"
                         @open="openFolder"
+                    />
+                    <DocumentItem
+                        v-else-if="item.type === 'document'"
+                        :id="item.id"
+                        :title="item.title"
+                        :description="item.description"
+                        :url="item.url"
+                        :x="item.x"
+                        :y="item.y"
+                        :width="item.width"
+                        :height="item.height"
+                        @update="updateItem(item.id, $event)"
+                        @delete="deleteItem"
                     />
                 </DraggableResizable>
             </div>
