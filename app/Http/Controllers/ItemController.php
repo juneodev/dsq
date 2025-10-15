@@ -263,6 +263,7 @@ class ItemController extends Controller
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
                     'url' => $data['url'] ?? null,
+                ]);
             case 'note':
                 return Note::create([
                     'title' => $data['title'] ?? 'New Note',

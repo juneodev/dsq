@@ -58,6 +58,8 @@ class ItemResource extends JsonResource
                         'title' => $itemable->title,
                         'description' => $itemable->description,
                         'url' => $itemable->url,
+                    ];
+                    break;
                 case 'note':
                     $specific = [
                         'title' => $itemable->title,

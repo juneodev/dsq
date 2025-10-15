@@ -70,7 +70,7 @@ class BoardController extends Controller
     {
         $board = Board::where('uuid', $uuid)->where('owner_id', Auth::id())->firstOrFail();
 
-        $items = Item::with('itemable')
+        $query = Item::with('itemable')
             ->where('board_id', $board->id)
             ->where('user_id', Auth::id());
 

@@ -105,6 +105,8 @@ const startUpload = async (file: File) => {
     } finally {
         isUploading.value = false;
         uploadProgress.value = 0;
+    }
+};
 // Board viewport and panning state
 const viewportEl = ref<HTMLElement | null>(null);
 const boardContainer = ref<HTMLElement | null>(null);
