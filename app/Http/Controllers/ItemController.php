@@ -9,8 +9,12 @@ use App\Models\Checklist;
 use App\Models\Folder;
 use App\Models\Document;
 use App\Models\Board;
+use App\Models\Note;
+use App\Models\Bookmark;
+use App\Models\Event as CalendarEvent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 
 class ItemController extends Controller
 {
@@ -32,9 +36,10 @@ class ItemController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'required|string|in:todo,checklist,folder,document',
+            'type' => 'required|string|in:todo,checklist,folder,note,bookmark,event,document',
             'board_id' => 'sometimes|integer|exists:boards,id',
             'board_uuid' => 'sometimes|string|exists:boards,uuid',
+            'folder_uuid' => 'nullable|uuid',
             'x' => 'integer|min:0',
             'y' => 'integer|min:0',
             'width' => 'integer|min:50',
@@ -46,8 +51,20 @@ class ItemController extends Controller
             'description' => 'nullable|string',
             'completed' => 'boolean',
             'items' => 'array', // For checklists
-            'color' => 'string', // For folders
-            'url' => 'nullable|string|max:2048' // For documents
+            'color' => 'string', // For folders OR note background
+            // Note
+            'content' => 'nullable|string',
+            'pinned' => 'boolean',
+            // Bookmark
+            'url' => 'string',
+            'favicon_url' => 'nullable|string',
+            'tags' => 'array',
+            // Event
+            'start_at' => 'date',
+            'end_at' => 'nullable|date',
+            'location' => 'nullable|string',
+            'all_day' => 'boolean',
+            'remind_minutes_before' => 'nullable|integer|min:0'
         ]);
 
         // Apply server-side defaults for quick-create flows
@@ -59,6 +76,29 @@ class ItemController extends Controller
             $validated['y'] = $validated['y'] ?? 0;
             $validated['width'] = $validated['width'] ?? 350;
             $validated['height'] = $validated['height'] ?? 200;
+        } elseif ($validated['type'] === 'note') {
+            $validated['title'] = $validated['title'] ?? 'New Note';
+            $validated['content'] = $validated['content'] ?? '';
+            $validated['color'] = $validated['color'] ?? '#FEF3C7';
+            $validated['pinned'] = $validated['pinned'] ?? false;
+            $validated['width'] = $validated['width'] ?? 320;
+            $validated['height'] = $validated['height'] ?? 200;
+        } elseif ($validated['type'] === 'bookmark') {
+            $validated['title'] = $validated['title'] ?? 'New Link';
+            $validated['url'] = $validated['url'] ?? 'https://example.com';
+            $validated['favicon_url'] = $validated['favicon_url'] ?? null;
+            $validated['tags'] = $validated['tags'] ?? [];
+            $validated['width'] = $validated['width'] ?? 260;
+            $validated['height'] = $validated['height'] ?? 120;
+        } elseif ($validated['type'] === 'event') {
+            $validated['title'] = $validated['title'] ?? 'New Event';
+            $validated['start_at'] = $validated['start_at'] ?? now();
+            $validated['end_at'] = $validated['end_at'] ?? null;
+            $validated['location'] = $validated['location'] ?? null;
+            $validated['all_day'] = $validated['all_day'] ?? false;
+            $validated['remind_minutes_before'] = $validated['remind_minutes_before'] ?? null;
+            $validated['width'] = $validated['width'] ?? 280;
+            $validated['height'] = $validated['height'] ?? 140;
         }
 
         // Create the specific model first
@@ -81,10 +121,17 @@ class ItemController extends Controller
             $boardId = $defaultBoard->id;
         }
 
+        // Resolve folder if provided via UUID
+        $folderId = null;
+        if (!empty($validated['folder_uuid'] ?? null)) {
+            $folderId = \App\Models\Folder::where('uuid', $validated['folder_uuid'])->value('id');
+        }
+
         // Create the item with polymorphic relationship
         $item = Item::create([
             'user_id' => Auth::id(),
             'board_id' => $boardId,
+            'folder_id' => $folderId,
             'itemable_type' => get_class($itemable),
             'itemable_id' => $itemable->id,
             'x' => $validated['x'] ?? 0,
@@ -120,16 +167,53 @@ class ItemController extends Controller
             'description' => 'nullable|string',
             'completed' => 'boolean',
             'items' => 'array',
-            'color' => 'string'
+            'color' => 'string',
+            // Note
+            'content' => 'nullable|string',
+            'pinned' => 'boolean',
+            // Bookmark
+            'url' => 'string',
+            'favicon_url' => 'nullable|string',
+            'tags' => 'array',
+            // Event
+            'start_at' => 'date',
+            'end_at' => 'nullable|date',
+            'location' => 'nullable|string',
+            'all_day' => 'boolean',
+            'remind_minutes_before' => 'nullable|integer|min:0',
+            // Moving into/out of a folder
+            'folder_uuid' => ['nullable', 'uuid']
         ]);
 
         // Update positioning data in Item
         $item->update(collect($validated)->only(['x', 'y', 'width', 'height'])->toArray());
 
+        // Handle moving item into/out of a folder if requested
+        if ($request->has('folder_uuid')) {
+            $folderUuid = $validated['folder_uuid'] ?? null;
+            if ($folderUuid === null || $folderUuid === '') {
+                // Move to root
+                $item->folder_id = null;
+            } else {
+                // Prevent assigning a folder to itself
+                $isItemAFolder = strtolower(class_basename($item->itemable_type)) === 'folder';
+                $selfFolderUuid = $isItemAFolder ? optional($item->itemable)->uuid : null;
+
+                if ($isItemAFolder && $selfFolderUuid && $selfFolderUuid === $folderUuid) {
+                    // Ignore self-assignment; keep folder_id unchanged
+                } else {
+                    $folderId = Folder::where('uuid', $folderUuid)->value('id');
+                    // If not found, keep as-is; alternatively, you could return 422
+                    $item->folder_id = $folderId ?? null;
+                }
+            }
+            $item->save();
+        }
+
         // Update type-specific data in itemable model
         // Important: keep boolean false values; filter out only nulls
         $itemableData = collect($validated)
-            ->except(['x', 'y', 'width', 'height'])
+            ->except(['x', 'y', 'width', 'height', 'folder_uuid'])
             ->filter(fn ($v) => $v !== null)
             ->toArray();
         if (!empty($itemableData)) {
@@ -169,6 +253,7 @@ class ItemController extends Controller
                 ]);
             case 'folder':
                 return Folder::create([
+                    'uuid' => (string) Str::uuid(),
                     'name' => $data['name'],
                     'description' => $data['description'] ?? null,
                     'color' => $data['color'] ?? '#3b82f6'
@@ -178,6 +263,28 @@ class ItemController extends Controller
                     'title' => $data['title'],
                     'description' => $data['description'] ?? null,
                     'url' => $data['url'] ?? null,
+            case 'note':
+                return Note::create([
+                    'title' => $data['title'] ?? 'New Note',
+                    'content' => $data['content'] ?? null,
+                    'color' => $data['color'] ?? '#FEF3C7',
+                    'pinned' => $data['pinned'] ?? false,
+                ]);
+            case 'bookmark':
+                return Bookmark::create([
+                    'title' => $data['title'] ?? 'New Link',
+                    'url' => $data['url'] ?? 'https://example.com',
+                    'favicon_url' => $data['favicon_url'] ?? null,
+                    'tags' => $data['tags'] ?? [],
+                ]);
+            case 'event':
+                return CalendarEvent::create([
+                    'title' => $data['title'] ?? 'New Event',
+                    'start_at' => $data['start_at'] ?? now(),
+                    'end_at' => $data['end_at'] ?? null,
+                    'location' => $data['location'] ?? null,
+                    'all_day' => $data['all_day'] ?? false,
+                    'remind_minutes_before' => $data['remind_minutes_before'] ?? null,
                 ]);
             default:
                 throw new \InvalidArgumentException("Invalid item type: {$type}");

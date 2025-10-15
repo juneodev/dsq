@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Folder extends Model
 {
     protected $fillable = [
+        'uuid',
         'name',
         'color',
         'description'
@@ -19,5 +21,13 @@ class Folder extends Model
     public function item(): MorphOne
     {
         return $this->morphOne(Item::class, 'itemable');
+    }
+
+    /**
+     * Items contained within this folder.
+     */
+    public function items(): HasMany
+    {
+        return $this->hasMany(Item::class);
     }
 }

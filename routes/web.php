@@ -12,9 +12,9 @@ Route::get('dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::get('board/{uuid}', function (string $uuid) {
-    return Inertia::render('Board', ['uuid' => $uuid]);
-})->middleware(['auth', 'verified'])->name('board');
+Route::get('board/{uuid}', [BoardController::class, 'show'])
+    ->middleware(['auth', 'verified'])
+    ->name('board');
 
 // API routes for items
 Route::apiResource('api/items', ItemController::class);

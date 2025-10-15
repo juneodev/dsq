@@ -6,9 +6,11 @@ use App\Http\Resources\ItemResource;
 use App\Models\Board;
 use App\Models\Document;
 use App\Models\Item;
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Inertia\Inertia;
 
 class BoardController extends Controller
 {
@@ -70,8 +72,24 @@ class BoardController extends Controller
 
         $items = Item::with('itemable')
             ->where('board_id', $board->id)
-            ->where('user_id', Auth::id())
-            ->get();
+            ->where('user_id', Auth::id());
+
+        // Folder scope via query param `f`
+        $folderUuid = $request->query('f');
+        if ($folderUuid === null || $folderUuid === '') {
+            // Root items (not inside any folder)
+            $query->whereNull('folder_id');
+        } else {
+            $folderId = Folder::where('uuid', $folderUuid)->value('id');
+            if ($folderId) {
+                $query->where('folder_id', $folderId);
+            } else {
+                // If folder not found, return empty results
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        $items = $query->get();
 
         return ItemResource::collection($items);
     }
@@ -118,6 +136,53 @@ class BoardController extends Controller
         ]);
 
         return new ItemResource($item->load('itemable'));
+    }
+
+    /**
+     * Render the Board page by UUID.
+     */
+    public function show(Request $request, string $uuid)
+    {
+        // Build breadcrumbs including folder hierarchy if provided via query param `f`.
+        $board = Board::where('uuid', $uuid)->where('owner_id', Auth::id())->firstOrFail();
+
+        $breadcrumbs = [
+            [
+                'title' => 'Dashboard',
+                'href' => route('dashboard'),
+            ],
+            [
+                'title' => $board->title,
+                'href' => route('board', ['uuid' => $board->uuid]),
+            ],
+        ];
+
+        // If we are inside a folder, append its ancestors and itself to the breadcrumb trail
+        $folderUuid = $request->query('f');
+        if (!empty($folderUuid)) {
+            $trail = [];
+            $current = Folder::where('uuid', $folderUuid)->first();
+            // Walk up via the polymorphic item relation to find parent folders
+            while ($current) {
+                $trail[] = [
+                    'title' => $current->name,
+                    'href' => route('board', ['uuid' => $board->uuid, 'f' => $current->uuid]),
+                ];
+                // Move to parent folder (if any)
+                $parentFolderId = optional($current->item)->folder_id;
+                if (!$parentFolderId) {
+                    break;
+                }
+                $current = Folder::find($parentFolderId);
+            }
+            // We built from current up to root; reverse to get root -> current order
+            $breadcrumbs = array_merge($breadcrumbs, array_reverse($trail));
+        }
+
+        return Inertia::render('Board', [
+            'uuid' => $uuid,
+            'breadcrumbs' => $breadcrumbs,
+        ]);
     }
 
     /**

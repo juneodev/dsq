@@ -47,6 +47,7 @@ class ItemResource extends JsonResource
                     break;
                 case 'folder':
                     $specific = [
+                        'uuid' => $itemable->uuid,
                         'name' => $itemable->name,
                         'description' => $itemable->description,
                         'color' => $itemable->color,
@@ -57,6 +58,30 @@ class ItemResource extends JsonResource
                         'title' => $itemable->title,
                         'description' => $itemable->description,
                         'url' => $itemable->url,
+                case 'note':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'content' => $itemable->content,
+                        'color' => $itemable->color,
+                        'pinned' => (bool) ($itemable->pinned ?? false),
+                    ];
+                    break;
+                case 'bookmark':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'url' => $itemable->url,
+                        'favicon_url' => $itemable->favicon_url,
+                        'tags' => $itemable->tags ?? [],
+                    ];
+                    break;
+                case 'event':
+                    $specific = [
+                        'title' => $itemable->title,
+                        'start_at' => $itemable->start_at,
+                        'end_at' => $itemable->end_at,
+                        'location' => $itemable->location,
+                        'all_day' => (bool) ($itemable->all_day ?? false),
+                        'remind_minutes_before' => $itemable->remind_minutes_before,
                     ];
                     break;
                 default:
