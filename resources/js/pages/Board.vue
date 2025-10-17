@@ -13,7 +13,7 @@ import { Head } from '@inertiajs/vue3';
 import axios from 'axios';
 import DraggableResizable from 'draggable-resizable-vue3';
 import { onMounted, onBeforeUnmount, ref } from 'vue';
-import { Plus, ListTodo, CheckSquare, Folder as FolderIcon, StickyNote, Link as LinkIcon, Calendar } from 'lucide-vue-next';
+import { Plus, Minus, ListTodo, CheckSquare, Folder as FolderIcon, StickyNote, Link as LinkIcon, Calendar } from 'lucide-vue-next';
 
 const props = defineProps<{ uuid: string; breadcrumbs?: BreadcrumbItem[] }>();
 
@@ -60,12 +60,21 @@ let startPanY = 0;
 
 const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
 
-const computePanBounds = () => {
-    const boardEl = boardContainer.value;
-    const boardW = boardEl?.offsetWidth ?? BOARD_WIDTH;
-    const boardH = boardEl?.offsetHeight ?? BOARD_HEIGHT;
+// --- Zoom state ---
+const scale = ref(1);
+const MIN_SCALE = 0.5;
+const MAX_SCALE = 2;
+const SCALE_STEP = 0.1;
 
-    // Use the real viewport size from the window to avoid inflated container heights
+const computePanBounds = () => {
+    // Dimensions of the logical board, scaled
+    const boardEl = boardContainer.value;
+    const baseW = boardEl?.offsetWidth ?? BOARD_WIDTH;
+    const baseH = boardEl?.offsetHeight ?? BOARD_HEIGHT;
+    const boardW = baseW * scale.value;
+    const boardH = baseH * scale.value;
+
+    // Real viewport size from the window to avoid inflated container heights
     const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0);
     const vh = Math.max(document.documentElement.clientHeight || 0, window.innerHeight || 0);
 
@@ -74,6 +83,17 @@ const computePanBounds = () => {
     const bounds = { minX, maxX: 0, minY, maxY: 0 } as const;
     return bounds as { minX: number; maxX: number; minY: number; maxY: number };
 };
+
+const setScale = (next: number) => {
+    scale.value = Math.round(Math.max(MIN_SCALE, Math.min(MAX_SCALE, next)) * 100) / 100;
+    const { minX, maxX, minY, maxY } = computePanBounds();
+    panX.value = Math.max(minX, Math.min(maxX, panX.value));
+    panY.value = Math.max(minY, Math.min(maxY, panY.value));
+};
+
+const zoomIn = () => setScale(scale.value + SCALE_STEP);
+const zoomOut = () => setScale(scale.value - SCALE_STEP);
+const resetZoom = () => setScale(1);
 
 const onPanMove = (e: MouseEvent) => {
     if (!isPanning.value) return;
@@ -401,7 +421,7 @@ onBeforeUnmount(() => {
                 <div
                     ref="boardContainer"
                     class="relative select-none"
-                    :style="{ width: BOARD_WIDTH + 'px', height: BOARD_HEIGHT + 'px', transform: `translate(${panX}px, ${panY}px)` }"
+                    :style="{ width: BOARD_WIDTH + 'px', height: BOARD_HEIGHT + 'px', transform: `translate(${panX}px, ${panY}px) scale(${scale})`, transformOrigin: '0 0' }"
                 >
                     <!-- Transparent surface to initiate panning when clicking empty board space -->
                     <div
@@ -419,6 +439,7 @@ onBeforeUnmount(() => {
                         :grid="[20, 20]"
                         :show-grid="true"
                         :parent="true"
+                        :scale="scale"
                         @dragstop="onDragStop(item)"
                         @resize-stop="updateItemPosition(item)"
                         class="rounded-box z-10"
@@ -513,6 +534,16 @@ onBeforeUnmount(() => {
                             @delete="deleteItem"
                         />
                     </DraggableResizable>
+                </div>
+                <!-- Zoom controls: floating buttons, not affected by board scaling -->
+                <div class="pointer-events-auto absolute right-4 top-4 z-20 flex flex-col gap-2">
+                  <button @click="zoomIn" class="rounded-md bg-white/80 px-3 py-2 shadow hover:bg-white">
+                    <Plus class="size-4" />
+                  </button>
+                  <button @click="zoomOut" class="rounded-md bg-white/80 px-3 py-2 shadow hover:bg-white">
+                    <Minus class="size-4" />
+                  </button>
+                  <button @click="resetZoom" class="rounded-md bg-white/80 px-2 py-1 text-xs shadow hover:bg-white">100%</button>
                 </div>
             </div>
         </div>
