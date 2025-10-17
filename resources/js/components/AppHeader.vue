@@ -73,7 +73,7 @@ const mainNavItems: NavItem[] = [
 <template>
     <div>
         <div class="border-b border-base-content/30">
-            <div class="mx-auto flex h-16 items-center px-4 md:max-w-7xl">
+            <div class="mx-auto flex h-12 items-center px-4 md:max-w-7xl">
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
                     <Sheet>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Trash, ExternalLink, Pencil, Save, X } from 'lucide-vue-next';
-import { ref, nextTick } from 'vue';
+import { ref, nextTick, computed } from 'vue';
 
 interface DocumentProps {
   id: number;
@@ -26,6 +26,12 @@ const formTitle = ref(props.title);
 const formDescription = ref(props.description ?? '');
 const formUrl = ref(props.url ?? '');
 
+// Determine if the linked document is an image by file extension (minimal, no backend change)
+const isImage = computed(() => {
+  const u = (props.url || '').toLowerCase();
+  return u.endsWith('.png') || u.endsWith('.jpg') || u.endsWith('.jpeg') || u.endsWith('.gif') || u.endsWith('.webp') || u.endsWith('.svg') || u.startsWith('data:image/');
+});
+
 const startEdit = async () => {
   formTitle.value = props.title;
   formDescription.value = props.description ?? '';
@@ -50,7 +56,7 @@ const cancelEdit = () => {
 
 <template>
   <div
-    class="flex h-full flex-col rounded-box bg-base-100 p-4 shadow-md cursor-pointer"
+    class="flex h-full flex-col rounded-box bg-white p-4 shadow-md cursor-pointer"
     @dblclick="startEdit"
   >
     <!-- Header -->
@@ -87,17 +93,27 @@ const cancelEdit = () => {
 
     <div v-else class="flex-1">
       <p v-if="description" class="mb-2 text-sm text-gray-600">{{ description }}</p>
+
+      <!-- If the document URL points to an image, show the image directly -->
+      <template v-if="url && isImage">
+        <a :href="url" target="_blank" rel="noopener noreferrer" :title="'Ouvrir ' + title">
+          <img :src="url" :alt="title" class="block h-full w-full max-h-64 object-contain rounded border border-gray-200 bg-gray-50" />
+        </a>
+      </template>
+
+      <!-- Otherwise, keep a link to open the document -->
       <a
-        v-if="url"
+        v-else-if="url"
         :href="url"
         target="_blank"
         rel="noopener noreferrer"
         class="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-        :title="'Open ' + title"
+        :title="'Ouvrir ' + title"
       >
         <ExternalLink class="size-4" />
         Ouvrir le document
       </a>
+
       <p v-else class="text-xs text-gray-400 italic">Aucun fichier ou URL associé</p>
     </div>
 

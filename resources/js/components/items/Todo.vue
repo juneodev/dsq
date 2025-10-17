@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Check, Trash, RotateCcw } from 'lucide-vue-next';
+import { Check, RotateCcw, Trash } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
 
 interface TodoProps {
@@ -52,18 +52,10 @@ const cancelEdit = () => {
 </script>
 
 <template>
-    <div
-        class="flex h-full flex-col rounded-box bg-base-100 p-4 shadow-md cursor-pointer"
-        @dblclick="startEdit"
-    >
+    <article @dblclick="startEdit">
         <!-- Header -->
         <div class="mb-2 justify-between">
             <div class="flex items-center gap-2">
-                <span
-                    class="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800"
-                >
-                    TODO
-                </span>
                 <h3 v-if="!editing" class="text-lg font-semibold text-gray-800">
                     {{ title }}
                 </h3>
@@ -106,9 +98,14 @@ const cancelEdit = () => {
                         @click="$emit('update', { completed: !completed })"
                         class="btn btn-square btn-soft btn-sm"
                         :class="completed ? 'btn-warning' : 'btn-success'"
-                        :title="completed ? 'Mark as todo' : 'Mark as completed'"
+                        :title="
+                            completed ? 'Mark as todo' : 'Mark as completed'
+                        "
                     >
-                        <component :is="completed ? RotateCcw : Check" class="size-5 text-sm" />
+                        <component
+                            :is="completed ? RotateCcw : Check"
+                            class="size-5 text-sm"
+                        />
                     </button>
                     <button
                         @click="$emit('delete', id)"
@@ -138,5 +135,5 @@ const cancelEdit = () => {
                 </div>
             </template>
         </div>
-    </div>
+    </article>
 </template>

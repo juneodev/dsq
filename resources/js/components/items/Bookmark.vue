@@ -72,7 +72,7 @@ const removeTag = (t: string) => {
 </script>
 
 <template>
-    <div class="flex h-full flex-col rounded-box bg-base-100 p-4 shadow-md cursor-pointer" @dblclick="startEdit">
+    <div class="flex h-full flex-col rounded-box bg-white p-4 shadow-md cursor-pointer" @dblclick="startEdit">
         <div class="mb-2 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <span class="rounded bg-indigo-100 px-2 py-1 text-xs font-medium text-indigo-800">BOOKMARK</span>
